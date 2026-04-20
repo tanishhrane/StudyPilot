@@ -6,7 +6,17 @@ from tools.summarizer import summarize_text
 from config import DEBUG
 
 
-def run_agent(user_input):
+# 🔥 NEW: helper function to format history
+def format_history(history):
+    conversation = ""
+    for msg in history:
+        role = msg["role"]
+        content = msg["content"]
+        conversation += f"{role.capitalize()}: {content}\n"
+    return conversation
+
+
+def run_agent(user_input, history):   # 🔥 UPDATED: added history parameter
 
     system_prompt = """
 You are StudyPilot, an intelligent academic routing agent.
@@ -40,7 +50,20 @@ Return format:
 }
 """
 
-    decision = call_llm(system_prompt, user_input)
+    # 🔥 NEW: format past conversation
+    context = format_history(history)
+
+    # 🔥 NEW: inject memory into user input
+    enriched_input = f"""
+Conversation so far:
+{context}
+
+Current user request:
+{user_input}
+"""
+
+    # 🔥 UPDATED: pass enriched input instead of raw input
+    decision = call_llm(system_prompt, enriched_input)
 
     try:
         parsed = json.loads(decision.strip())
