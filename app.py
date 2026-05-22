@@ -104,11 +104,18 @@ if st.button("Generate"):
 
     else:
 
-        st.session_state.current_mode = "normal"
+    # Clear old quiz completely
+    agent.latest_quiz = None
 
-        st.session_state.quiz = None
+    st.session_state.current_mode = "normal"
 
-        st.session_state.normal_result = result
+    st.session_state.quiz = None
+
+    st.session_state.quiz_submitted = False
+
+    st.session_state.evaluation = None
+
+    st.session_state.normal_result = result
 
 
 # ==========================================
