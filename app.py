@@ -30,6 +30,12 @@ if "quiz_submitted" not in st.session_state:
 if "evaluation" not in st.session_state:
     st.session_state.evaluation = None
 
+if "current_mode" not in st.session_state:
+    st.session_state.current_mode = "normal"
+
+if "normal_result" not in st.session_state:
+    st.session_state.normal_result = ""
+
 
 # ==========================================
 # HEADER
@@ -45,7 +51,13 @@ st.subheader("Your Agentic AI Study Assistant")
 
 user_input = st.text_area(
     "Ask StudyPilot:",
-    placeholder="Example: Generate a quiz on machine learning with 3 questions"
+    placeholder=(
+        "Examples:\n"
+        "- Generate a quiz on machine learning\n"
+        "- Create a study plan for DSA\n"
+        "- Summarize reinforcement learning"
+    ),
+    height=150
 )
 
 
@@ -59,7 +71,7 @@ if st.button("Generate"):
         st.warning("Please enter a prompt.")
         st.stop()
 
-    # Reset previous quiz state
+    # Reset old states
     st.session_state.quiz_submitted = False
     st.session_state.evaluation = None
 
@@ -76,22 +88,37 @@ if st.button("Generate"):
     if result:
         save_message("assistant", str(result))
 
-    # Store quiz in session state
+    # ==========================================
+    # QUIZ MODE
+    # ==========================================
+
     if agent.latest_quiz:
+
+        st.session_state.current_mode = "quiz"
+
         st.session_state.quiz = agent.latest_quiz
 
+    # ==========================================
+    # NORMAL MODE
+    # ==========================================
+
     else:
+
+        st.session_state.current_mode = "normal"
+
         st.session_state.quiz = None
-        st.markdown("---")
-        st.header("🔎 Result")
-        st.write(result)
+
+        st.session_state.normal_result = result
 
 
 # ==========================================
 # QUIZ UI
 # ==========================================
 
-if st.session_state.quiz:
+if (
+    st.session_state.quiz
+    and st.session_state.current_mode == "quiz"
+):
 
     quiz = st.session_state.quiz
 
@@ -140,7 +167,7 @@ if st.session_state.quiz:
 
 
 # ==========================================
-# RESULTS UI
+# QUIZ RESULTS
 # ==========================================
 
 if st.session_state.quiz_submitted:
@@ -183,3 +210,19 @@ if st.session_state.quiz_submitted:
                 f"Question {item['question_id']} → Wrong "
                 f"(Correct Answer: {item['correct_answer']})"
             )
+
+
+# ==========================================
+# NORMAL RESPONSE UI
+# ==========================================
+
+if (
+    st.session_state.current_mode == "normal"
+    and st.session_state.normal_result
+):
+
+    st.markdown("---")
+
+    st.header("🔎 Result")
+
+    st.write(st.session_state.normal_result)
