@@ -102,20 +102,20 @@ if st.button("Generate"):
     # NORMAL MODE
     # ==========================================
 
-     else:
+    else:
 
-     # Clear old quiz completely
-     agent.latest_quiz = None
+        # Clear old quiz completely
+        agent.latest_quiz = None
 
-     st.session_state.current_mode = "normal"
+        st.session_state.current_mode = "normal"
 
-     st.session_state.quiz = None
+        st.session_state.quiz = None
 
-     st.session_state.quiz_submitted = False
+        st.session_state.quiz_submitted = False
 
-     st.session_state.evaluation = None
+        st.session_state.evaluation = None
 
-     st.session_state.normal_result = result
+        st.session_state.normal_result = result
 
 
 # ==========================================
@@ -155,7 +155,6 @@ if (
         user_answers[question["id"]] = selected_answer
 
         st.markdown("")
-
 
     # ==========================================
     # SUBMIT QUIZ BUTTON
