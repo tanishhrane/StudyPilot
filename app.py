@@ -1,5 +1,6 @@
 import streamlit as st
 from agent import run_agent
+from memory import save_message, get_last_messages
 
 
 st.set_page_config(
@@ -42,7 +43,9 @@ if st.button("Generate"):
         st.warning("Please enter a request.")
     else:
         with st.spinner("Thinking..."):
-            result = run_agent(user_input)
+            history = get_last_messages(limit=5)
+
+            result = run_agent(user_input, history)
 
         st.markdown("### 🔍 Result")
         st.write(result)
