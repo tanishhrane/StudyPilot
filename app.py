@@ -1,5 +1,4 @@
 import streamlit as st
-import agent
 
 from agent import run_agent
 from memory import save_message, get_last_messages
@@ -42,7 +41,10 @@ if "normal_result" not in st.session_state:
 # ==========================================
 
 st.title("📘 StudyPilot")
-st.subheader("Your Agentic AI Study Assistant")
+
+st.subheader(
+    "Your Agentic AI Study Assistant"
+)
 
 
 # ==========================================
@@ -50,13 +52,21 @@ st.subheader("Your Agentic AI Study Assistant")
 # ==========================================
 
 user_input = st.text_area(
+
     "Ask StudyPilot:",
+
     placeholder=(
+
         "Examples:\n"
+
         "- Generate a quiz on machine learning\n"
+
         "- Create a study plan for DSA\n"
+
         "- Summarize reinforcement learning"
+
     ),
+
     height=150
 )
 
@@ -68,44 +78,66 @@ user_input = st.text_area(
 if st.button("Generate"):
 
     if user_input.strip() == "":
-        st.warning("Please enter a prompt.")
+
+        st.warning(
+            "Please enter a prompt."
+        )
+
         st.stop()
 
-    # Reset old states
+    # Reset states
     st.session_state.quiz_submitted = False
+
     st.session_state.evaluation = None
 
     # Save user message
-    save_message("user", user_input)
+    save_message(
+        "user",
+        user_input
+    )
 
     # Retrieve history
-    history = get_last_messages(limit=5)
+    history = get_last_messages(
+        limit=5
+    )
 
     # Run agent
-    result = run_agent(user_input, history)
+    result = run_agent(
+        user_input,
+        history
+    )
 
     # Save assistant response
     if result:
-        save_message("assistant", str(result))
+
+        save_message(
+            "assistant",
+            str(result)
+        )
+
+    # ==========================================
+    # Detect Current Tool
+    # ==========================================
+
+    tool_used = result.get("tool")
 
     # ==========================================
     # QUIZ MODE
     # ==========================================
 
-    if agent.latest_quiz:
+    if tool_used == "generate_quiz":
 
         st.session_state.current_mode = "quiz"
 
-        st.session_state.quiz = agent.latest_quiz
+        st.session_state.quiz = result[
+            "quiz_data"
+        ]
 
     # ==========================================
     # NORMAL MODE
     # ==========================================
 
     else:
-
-        # Clear old quiz completely
-        agent.latest_quiz = None
 
         st.session_state.current_mode = "normal"
 
@@ -115,7 +147,9 @@ if st.button("Generate"):
 
         st.session_state.evaluation = None
 
-        st.session_state.normal_result = result
+        st.session_state.normal_result = result[
+            "result"
+        ]
 
 
 # ==========================================
@@ -123,8 +157,12 @@ if st.button("Generate"):
 # ==========================================
 
 if (
+
     st.session_state.quiz
-    and st.session_state.current_mode == "quiz"
+
+    and st.session_state.current_mode
+    == "quiz"
+
 ):
 
     quiz = st.session_state.quiz
@@ -135,36 +173,55 @@ if (
 
     user_answers = {}
 
-    # Display questions
+    # ==========================================
+    # Display Questions
+    # ==========================================
+
     for question in quiz["questions"]:
 
         st.subheader(
-            f"Q{question['id']}. {question['question']}"
+
+            f"Q{question['id']}. "
+            f"{question['question']}"
+
         )
 
         selected_answer = st.radio(
+
             "Choose your answer:",
-            options=list(question["options"].keys()),
+
+            options=list(
+                question["options"].keys()
+            ),
 
             format_func=lambda option:
-                f"{option}) {question['options'][option]}",
+                f"{option}) "
+                f"{question['options'][option]}",
 
-            key=f"question_{question['id']}"
+            key=f"question_"
+                f"{question['id']}"
+
         )
 
-        user_answers[question["id"]] = selected_answer
+        user_answers[
+            question["id"]
+        ] = selected_answer
 
         st.markdown("")
 
+
     # ==========================================
-    # SUBMIT QUIZ BUTTON
+    # SUBMIT BUTTON
     # ==========================================
 
     if st.button("Submit Quiz"):
 
         evaluation = evaluate_quiz(
+
             quiz,
+
             user_answers
+
         )
 
         st.session_state.evaluation = evaluation
@@ -178,28 +235,46 @@ if (
 
 if st.session_state.quiz_submitted:
 
-    evaluation = st.session_state.evaluation
+    evaluation = (
+        st.session_state.evaluation
+    )
 
     st.markdown("---")
 
     st.header("📊 Quiz Results")
 
     st.success(
-        f"Score: {evaluation['score']} / {evaluation['total']}"
+
+        f"Score: "
+        f"{evaluation['score']} / "
+        f"{evaluation['total']}"
+
     )
 
-    # Weak topics
+    # ==========================================
+    # WEAK TOPICS
+    # ==========================================
+
     if evaluation["weak_topics"]:
 
         st.subheader("Weak Topics")
 
-        for topic in evaluation["weak_topics"]:
+        for topic in evaluation[
+            "weak_topics"
+        ]:
+
             st.write(f"- {topic}")
 
     else:
-        st.success("Excellent performance!")
 
-    # Detailed results
+        st.success(
+            "Excellent performance!"
+        )
+
+    # ==========================================
+    # DETAILED RESULTS
+    # ==========================================
+
     st.subheader("Detailed Results")
 
     for item in evaluation["results"]:
@@ -207,14 +282,24 @@ if st.session_state.quiz_submitted:
         if item["is_correct"]:
 
             st.success(
-                f"Question {item['question_id']} → Correct"
+
+                f"Question "
+                f"{item['question_id']} "
+                f"→ Correct"
+
             )
 
         else:
 
             st.error(
-                f"Question {item['question_id']} → Wrong "
-                f"(Correct Answer: {item['correct_answer']})"
+
+                f"Question "
+                f"{item['question_id']} "
+                f"→ Wrong "
+
+                f"(Correct Answer: "
+                f"{item['correct_answer']})"
+
             )
 
 
@@ -223,12 +308,19 @@ if st.session_state.quiz_submitted:
 # ==========================================
 
 if (
-    st.session_state.current_mode == "normal"
-    and st.session_state.normal_result
+
+    st.session_state.current_mode
+    == "normal"
+
+    and
+    st.session_state.normal_result
+
 ):
 
     st.markdown("---")
 
     st.header("🔎 Result")
 
-    st.write(st.session_state.normal_result)
+    st.write(
+        st.session_state.normal_result
+    )
