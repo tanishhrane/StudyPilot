@@ -3,6 +3,7 @@ import streamlit as st
 from agent import run_agent
 from memory import save_message, get_last_messages
 from tools.quiz import evaluate_quiz
+from auth import login_user, signup_user
 
 
 # ==========================================
@@ -35,6 +36,9 @@ if "current_mode" not in st.session_state:
 if "normal_result" not in st.session_state:
     st.session_state.normal_result = ""
 
+if "user" not in st.session_state:
+    st.session_state.user = None
+
 
 # ==========================================
 # HEADER
@@ -48,6 +52,107 @@ st.subheader(
 
 
 # ==========================================
+# AUTHENTICATION UI
+# ==========================================
+
+if st.session_state.user is None:
+
+    st.markdown("---")
+
+    st.subheader("🔐 Login / Signup")
+
+    auth_mode = st.selectbox(
+
+        "Choose Option",
+
+        ["Login", "Signup"]
+
+    )
+
+    email = st.text_input(
+        "Email"
+    )
+
+    password = st.text_input(
+        "Password",
+        type="password"
+    )
+
+    # ==========================================
+    # LOGIN
+    # ==========================================
+
+    if auth_mode == "Login":
+
+        if st.button("Login"):
+
+            user = login_user(
+                email,
+                password
+            )
+
+            if user:
+
+                st.session_state.user = user
+
+                st.success(
+                    "Login successful!"
+                )
+
+                st.rerun()
+
+            else:
+
+                st.error(
+                    "Invalid email or password."
+                )
+
+    # ==========================================
+    # SIGNUP
+    # ==========================================
+
+    else:
+
+        if st.button("Create Account"):
+
+            user = signup_user(
+                email,
+                password
+            )
+
+            if user:
+
+                st.success(
+                    "Account created successfully!"
+                )
+
+            else:
+
+                st.error(
+                    "Signup failed."
+                )
+
+    st.stop()
+
+
+# ==========================================
+# LOGGED IN USER
+# ==========================================
+
+if st.session_state.user:
+
+    st.success(
+        "Logged in successfully"
+    )
+
+    if st.button("Logout"):
+
+        st.session_state.user = None
+
+        st.rerun()
+
+
+# ==========================================
 # USER INPUT
 # ==========================================
 
@@ -56,15 +161,10 @@ user_input = st.text_area(
     "Ask StudyPilot:",
 
     placeholder=(
-
         "Examples:\n"
-
         "- Generate a quiz on machine learning\n"
-
         "- Create a study plan for DSA\n"
-
         "- Summarize reinforcement learning"
-
     ),
 
     height=150
@@ -85,7 +185,7 @@ if st.button("Generate"):
 
         st.stop()
 
-    # Reset states
+    # Reset old states
     st.session_state.quiz_submitted = False
 
     st.session_state.evaluation = None
@@ -116,7 +216,7 @@ if st.button("Generate"):
         )
 
     # ==========================================
-    # Detect Current Tool
+    # DETECT CURRENT TOOL
     # ==========================================
 
     tool_used = result.get("tool")
@@ -160,8 +260,9 @@ if (
 
     st.session_state.quiz
 
-    and st.session_state.current_mode
-    == "quiz"
+    and
+
+    st.session_state.current_mode == "quiz"
 
 ):
 
@@ -174,7 +275,7 @@ if (
     user_answers = {}
 
     # ==========================================
-    # Display Questions
+    # DISPLAY QUESTIONS
     # ==========================================
 
     for question in quiz["questions"]:
@@ -211,7 +312,7 @@ if (
 
 
     # ==========================================
-    # SUBMIT BUTTON
+    # SUBMIT QUIZ BUTTON
     # ==========================================
 
     if st.button("Submit Quiz"):
@@ -313,6 +414,7 @@ if (
     == "normal"
 
     and
+
     st.session_state.normal_result
 
 ):
