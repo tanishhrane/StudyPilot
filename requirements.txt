@@ -1,4 +1,4 @@
 groq
 python-dotenv
 streamlit
-pyrebase
+pyrebase4
