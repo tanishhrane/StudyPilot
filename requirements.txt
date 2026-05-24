@@ -2,5 +2,3 @@ groq
 python-dotenv
 streamlit
 pyrebase
-firebase-audmin
-streamlit-authenticator
