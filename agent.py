@@ -3,36 +3,17 @@ import json
 from llm import call_llm
 
 from tools.study_plan import create_study_plan
-from tools.quiz import generate_quiz, evaluate_quiz
+from tools.quiz import generate_quiz
 from tools.summarizer import summarize_text
 
 from config import DEBUG
 
 
 # ==========================================
-# Helper Function
-# ==========================================
-
-def format_history(history):
-
-    conversation = ""
-
-    for msg in history:
-
-        role = msg["role"]
-
-        content = msg["content"]
-
-        conversation += f"{role.capitalize()}: {content}\n"
-
-    return conversation
-
-
-# ==========================================
 # Main Agent Function
 # ==========================================
 
-def run_agent(user_input, history):
+def run_agent(user_input):
 
     system_prompt = """
 You are StudyPilot, an intelligent academic routing agent.
@@ -47,7 +28,9 @@ Available tools:
 1. create_study_plan
    Arguments:
    - topic (string)
-   - days (integer)
+   - days (integer, optional)
+   - start_date (string, optional)
+   - time_slot (string, required)
 
 2. generate_quiz
    Arguments:
@@ -67,30 +50,12 @@ Return format:
 """
 
     # ==========================================
-    # Format Conversation History
-    # ==========================================
-
-    context = format_history(history)
-
-    # ==========================================
-    # Create Enriched Input
-    # ==========================================
-
-    enriched_input = f"""
-Conversation so far:
-{context}
-
-Current user request:
-{user_input}
-"""
-
-    # ==========================================
-    # LLM Tool Decision
+    # TOOL DECISION
     # ==========================================
 
     decision = call_llm(
         system_prompt,
-        enriched_input
+        user_input
     )
 
     try:
@@ -108,8 +73,13 @@ Current user request:
             print(decision)
 
         return {
+
             "tool": "error",
-            "result": "Error: Agent failed to return valid JSON."
+
+            "result": (
+                "Error: Agent failed "
+                "to return valid JSON."
+            )
         }
 
     tool_name = parsed.get("tool_name")
@@ -121,9 +91,15 @@ Current user request:
 
     if DEBUG:
 
-        print(f"\n[DEBUG] Tool Selected: {tool_name}")
+        print(
+            f"\n[DEBUG] Tool Selected: "
+            f"{tool_name}"
+        )
 
-        print(f"[DEBUG] Arguments: {arguments}")
+        print(
+            f"[DEBUG] Arguments: "
+            f"{arguments}"
+        )
 
     # ==========================================
     # STUDY PLAN TOOL
@@ -135,12 +111,65 @@ Current user request:
 
         days = arguments.get("days")
 
-        if not topic or not days:
+        start_date = arguments.get(
+            "start_date"
+        )
+
+        time_slot = arguments.get(
+            "time_slot"
+        )
+
+        # ==========================================
+        # REQUIRED FIELD CHECK
+        # ==========================================
+
+        if not topic:
 
             return {
+
                 "tool": "error",
-                "result": "Error: Missing topic or days."
+
+                "result": (
+                    "Error: Missing study topic."
+                )
             }
+
+        if not time_slot:
+
+            return {
+
+                "tool": "error",
+
+                "result": (
+                    "Please rewrite your prompt "
+                    "with your preferred daily study time.\n\n"
+
+                    "Example:\n"
+
+                    "'Make a 7-day ML study plan "
+                    "from 6 PM to 8 PM'"
+                )
+            }
+
+        # ==========================================
+        # DEFAULT DAYS
+        # ==========================================
+
+        if not days:
+
+            days = 7
+
+        # ==========================================
+        # DEFAULT START DATE
+        # ==========================================
+
+        if not start_date:
+
+            start_date = "today"
+
+        # ==========================================
+        # VALIDATE DAYS
+        # ==========================================
 
         try:
 
@@ -149,16 +178,29 @@ Current user request:
         except (ValueError, TypeError):
 
             return {
+
                 "tool": "error",
-                "result": "Error: Days must be a number."
+
+                "result": (
+                    "Error: Days must be a number."
+                )
             }
 
+        # ==========================================
+        # GENERATE STUDY PLAN
+        # ==========================================
+
         result = create_study_plan(
+
             topic,
-            days
+            days,
+            start_date,
+            time_slot
+
         )
 
         return {
+
             "tool": "create_study_plan",
 
             "result": f"""
@@ -187,8 +229,13 @@ Current user request:
         if not topic or not num_questions:
 
             return {
+
                 "tool": "error",
-                "result": "Error: Missing topic or question count."
+
+                "result": (
+                    "Error: Missing topic "
+                    "or question count."
+                )
             }
 
         try:
@@ -200,8 +247,13 @@ Current user request:
         except (ValueError, TypeError):
 
             return {
+
                 "tool": "error",
-                "result": "Error: Number of questions must be a number."
+
+                "result": (
+                    "Error: Number of questions "
+                    "must be a number."
+                )
             }
 
         result = generate_quiz(
@@ -212,46 +264,15 @@ Current user request:
         if "error" in result:
 
             return {
+
                 "tool": "error",
+
                 "result": result["error"]
             }
-
-        # ==========================================
-        # Build Quiz Output
-        # ==========================================
-
-        output = "\n==============================\n"
-
-        output += "📝 Quiz Generated\n"
-
-        output += "==============================\n\n"
-
-        for question in result["questions"]:
-
-            output += (
-                f"Q{question['id']}. "
-                f"{question['question']}\n"
-            )
-
-            for (
-                option_key,
-                option_value
-            ) in question["options"].items():
-
-                output += (
-                    f"{option_key}) "
-                    f"{option_value}\n"
-                )
-
-            output += "\n"
-
-        output += "==============================\n"
 
         return {
 
             "tool": "generate_quiz",
-
-            "result": output,
 
             "quiz_data": result
         }
@@ -267,8 +288,13 @@ Current user request:
         if not text:
 
             return {
+
                 "tool": "error",
-                "result": "Error: Missing text to summarize."
+
+                "result": (
+                    "Error: Missing text "
+                    "to summarize."
+                )
             }
 
         result = summarize_text(text)
@@ -295,6 +321,10 @@ Current user request:
     else:
 
         return {
+
             "tool": "error",
-            "result": "Error: Unknown tool selected."
+
+            "result": (
+                "Error: Unknown tool selected."
+            )
         }
