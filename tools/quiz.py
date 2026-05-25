@@ -47,7 +47,6 @@ Generate {num_questions} multiple choice questions on the topic: {topic}.
 
 
 #  NEW FUNCTION
-# VERY IMPORTANT FUNCTION FOR TODAY
 def evaluate_quiz(quiz_data, user_answers):
 
     score = 0

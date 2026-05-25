@@ -1,9 +1,18 @@
+# ==========================================
+# IMPORTS
+# ==========================================
+
 import streamlit as st
 
 from agent import run_agent
 from memory import save_message, get_last_messages
 from tools.quiz import evaluate_quiz
-from auth import login_user, signup_user
+
+from auth import (
+    login_user,
+    signup_user,
+    google_login
+)
 
 
 # ==========================================
@@ -132,6 +141,34 @@ if st.session_state.user is None:
                     "Signup failed."
                 )
 
+    # ==========================================
+    # GOOGLE LOGIN
+    # ==========================================
+
+    st.markdown("---")
+
+    st.subheader("Google Authentication")
+
+    if st.button("Continue with Google"):
+
+        user_info = google_login()
+
+        if user_info:
+
+            st.session_state.user = user_info
+
+            st.success(
+                "Google Login Successful!"
+            )
+
+            st.rerun()
+
+        else:
+
+            st.error(
+                "Google Login Failed"
+            )
+
     st.stop()
 
 
@@ -144,6 +181,35 @@ if st.session_state.user:
     st.success(
         "Logged in successfully"
     )
+
+    # ==========================================
+    # DISPLAY USER INFO
+    # ==========================================
+
+    if "name" in st.session_state.user:
+
+        st.write(
+            "Name:",
+            st.session_state.user["name"]
+        )
+
+    if "email" in st.session_state.user:
+
+        st.write(
+            "Email:",
+            st.session_state.user["email"]
+        )
+
+    if "picture" in st.session_state.user:
+
+        st.image(
+            st.session_state.user["picture"],
+            width=80
+        )
+
+    # ==========================================
+    # LOGOUT
+    # ==========================================
 
     if st.button("Logout"):
 
@@ -274,10 +340,6 @@ if (
 
     user_answers = {}
 
-    # ==========================================
-    # DISPLAY QUESTIONS
-    # ==========================================
-
     for question in quiz["questions"]:
 
         st.subheader(
@@ -309,11 +371,6 @@ if (
         ] = selected_answer
 
         st.markdown("")
-
-
-    # ==========================================
-    # SUBMIT QUIZ BUTTON
-    # ==========================================
 
     if st.button("Submit Quiz"):
 
@@ -352,10 +409,6 @@ if st.session_state.quiz_submitted:
 
     )
 
-    # ==========================================
-    # WEAK TOPICS
-    # ==========================================
-
     if evaluation["weak_topics"]:
 
         st.subheader("Weak Topics")
@@ -371,10 +424,6 @@ if st.session_state.quiz_submitted:
         st.success(
             "Excellent performance!"
         )
-
-    # ==========================================
-    # DETAILED RESULTS
-    # ==========================================
 
     st.subheader("Detailed Results")
 

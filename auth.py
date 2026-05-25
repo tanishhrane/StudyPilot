@@ -1,6 +1,10 @@
 import pyrebase
 import streamlit as st
 
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
 
 # ==========================================
 # FIREBASE CONFIG
@@ -72,5 +76,41 @@ def signup_user(email, password):
         return user
 
     except Exception:
+
+        return None
+    
+def google_login():
+
+    try:
+
+        flow = InstalledAppFlow.from_client_secrets_file(
+
+            "client_secret.json",
+
+            scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile"
+            ]
+        )
+
+        credentials = flow.run_local_server(
+            port=0
+        )
+
+        request_object = requests.Request()
+
+        user_info = id_token.verify_oauth2_token(
+
+            credentials._id_token,
+            request_object
+
+        )
+
+        return user_info
+
+    except Exception as e:
+
+        print(e)
 
         return None
