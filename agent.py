@@ -1,5 +1,7 @@
 import json
 
+from datetime import datetime
+
 from llm import call_llm
 
 from tools.study_plan import create_study_plan
@@ -144,7 +146,7 @@ Return format:
                     "Please rewrite your prompt "
                     "with your preferred daily study time.\n\n"
 
-                    "Example:\n"
+                    "Example:\n\n"
 
                     "'Make a 7-day ML study plan "
                     "from 6 PM to 8 PM'"
@@ -165,7 +167,11 @@ Return format:
 
         if not start_date:
 
-            start_date = "today"
+            today = datetime.today()
+
+            start_date = today.strftime(
+                "%A %Y-%m-%d"
+            )
 
         # ==========================================
         # VALIDATE DAYS
