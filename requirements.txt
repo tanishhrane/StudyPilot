@@ -2,3 +2,6 @@ groq
 python-dotenv
 streamlit
 pyrebase4
+google-auth
+google-auth-oauthlib
+requests
