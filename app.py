@@ -5,7 +5,6 @@
 import streamlit as st
 
 from agent import run_agent
-from memory import save_message, get_last_messages
 from tools.quiz import evaluate_quiz
 
 from auth import (
@@ -251,35 +250,21 @@ if st.button("Generate"):
 
         st.stop()
 
-    # Reset old states
+    # ==========================================
+    # RESET STATES
+    # ==========================================
+
     st.session_state.quiz_submitted = False
 
     st.session_state.evaluation = None
 
-    # Save user message
-    save_message(
-        "user",
+    # ==========================================
+    # RUN AGENT
+    # ==========================================
+
+    result = run_agent(
         user_input
     )
-
-    # Retrieve history
-    history = get_last_messages(
-        limit=5
-    )
-
-    # Run agent
-    result = run_agent(
-        user_input,
-        history
-    )
-
-    # Save assistant response
-    if result:
-
-        save_message(
-            "assistant",
-            str(result)
-        )
 
     # ==========================================
     # DETECT CURRENT TOOL
