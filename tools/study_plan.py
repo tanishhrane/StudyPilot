@@ -91,16 +91,12 @@ Requirements:
     )
 
     print("\n========== RAW LLM RESPONSE ==========\n")
-
     print(response)
-
     print("\n======================================\n")
 
     try:
 
-        parsed_response = json.loads(
-            response
-        )
+        parsed_response = json.loads(response)
 
         formatted_output = ""
 
@@ -110,17 +106,18 @@ Requirements:
         )
 
         # ==========================================
-        # SAFE DATE HANDLING
+        # SAFE DATE PARSING — FIXED
+        # Handles all formats agent may pass:
+        # "2024-01-15"
+        # "Monday 2024-01-15"
+        # "Monday 2024-01-15"
+        # "today"
         # ==========================================
 
-        if start_date == "today":
-
-            start_date = datetime.today().strftime(
-                "%Y-%m-%d"
-            )
+        clean_date = _parse_start_date(start_date)
 
         base_date = datetime.strptime(
-            start_date,
+            clean_date,
             "%Y-%m-%d"
         )
 
@@ -129,17 +126,11 @@ Requirements:
         # ==========================================
 
         for index, study_day in enumerate(
-
             parsed_response["days"]
-
         ):
 
             current_date = (
-
-                base_date +
-
-                timedelta(days=index)
-
+                base_date + timedelta(days=index)
             ).strftime("%Y-%m-%d")
 
             # ==========================================
@@ -182,82 +173,81 @@ Requirements:
             # ==========================================
 
             formatted_output += (
-
-                f"📅 Day "
-                f"{day_number} "
-                f"({current_date})\n"
-
+                f"📅 Day {day_number} "
+                f"— {current_date}\n"
+                f"⏰ {start_time} to {end_time}\n"
+                f"📖 {topic_name}\n\n"
             )
-
-            formatted_output += (
-                f"⏰ "
-                f"{start_time} "
-                f"- "
-                f"{end_time}\n"
-            )
-
-            formatted_output += (
-                f"📖 Topic: "
-                f"{topic_name}\n"
-            )
-
-            formatted_output += (
-                "Tasks:\n"
-            )
-
-            # ==========================================
-            # TASKS
-            # ==========================================
 
             for task in tasks:
+                formatted_output += (
+                    f"  ✅ {task.get('task', '')}\n"
+                    f"     {task.get('description', '')}\n\n"
+                )
 
-                if isinstance(task, dict):
-
-                    task_title = task.get(
-                        "task",
-                        "Study Task"
-                    )
-
-                    task_description = task.get(
-                        "description",
-                        ""
-                    )
-
-                    formatted_output += (
-                        f"- {task_title}\n"
-                    )
-
-                    if task_description:
-
-                        formatted_output += (
-                            f"   • "
-                            f"{task_description}\n"
-                        )
-
-                else:
-
-                    formatted_output += (
-                        f"- {task}\n"
-                    )
-
-            formatted_output += "\n"
+            formatted_output += "—" * 30 + "\n\n"
 
         return {
-
-            "formatted_output":
-                formatted_output,
-
-            "plan_json":
-                parsed_response
-
+            "formatted_output": formatted_output,
+            "plan_json": parsed_response
         }
 
     except Exception as e:
-
-        print("\n========== STUDY PLAN ERROR ==========\n")
-
-        print(e)
-
-        print("\n======================================\n")
-
         raise e
+
+
+# ==========================================
+# DATE PARSER HELPER — ADDED
+# ==========================================
+
+def _parse_start_date(start_date: str) -> str:
+    """
+    Cleans and normalizes start_date to 
+    YYYY-MM-DD format regardless of what 
+    the agent passes in.
+    """
+
+    if not start_date:
+        return datetime.today().strftime("%Y-%m-%d")
+
+    start_date = start_date.strip()
+
+    # Handle "today"
+    if start_date.lower() == "today":
+        return datetime.today().strftime("%Y-%m-%d")
+
+    # Try direct parse — "2024-01-15"
+    try:
+        datetime.strptime(start_date, "%Y-%m-%d")
+        return start_date
+    except ValueError:
+        pass
+
+    # Handle "Monday 2024-01-15" — day name + date
+    try:
+        parts = start_date.split(" ")
+        for part in parts:
+            try:
+                datetime.strptime(part, "%Y-%m-%d")
+                return part     # return only the date
+            except ValueError:
+                continue
+    except Exception:
+        pass
+
+    # Handle "Monday, January 15 2024"
+    for fmt in [
+        "%B %d %Y",
+        "%B %d, %Y",
+        "%d %B %Y",
+        "%A, %B %d %Y",
+        "%A %B %d %Y"
+    ]:
+        try:
+            parsed = datetime.strptime(start_date, fmt)
+            return parsed.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    # Final fallback — use today
+    return datetime.today().strftime("%Y-%m-%d")

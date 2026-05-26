@@ -169,7 +169,7 @@ Current User Input:
 
         if not start_date:
             today      = datetime.today()
-            start_date = today.strftime("%A %Y-%m-%d")
+            start_date = today.strftime(%Y-%m-%d")
 
         try:
             days = int(days)
