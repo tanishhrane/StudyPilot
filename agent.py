@@ -8,6 +8,11 @@ from tools.study_plan import create_study_plan
 from tools.quiz import generate_quiz
 from tools.summarizer import summarize_text
 
+from memory import (
+    save_message,
+    get_last_messages
+)
+
 from config import DEBUG
 
 
@@ -62,12 +67,38 @@ Return format:
 """
 
     # ==========================================
+    # MEMORY RETRIEVAL
+    # ==========================================
+
+    history = get_last_messages(
+        query=user_input,
+        limit=5
+    )
+
+    memory_context = ""
+
+    for msg in history:
+
+        memory_context += (
+            f"{msg['role']}: "
+            f"{msg['content']}\n"
+        )
+
+    enhanced_input = f"""
+Past Relevant Memory:
+{memory_context}
+
+Current User Input:
+{user_input}
+"""
+
+    # ==========================================
     # TOOL DECISION
     # ==========================================
 
     decision = call_llm(
         system_prompt,
-        user_input
+        enhanced_input
     )
 
     try:
@@ -112,6 +143,15 @@ Return format:
             f"[DEBUG] Arguments: "
             f"{arguments}"
         )
+
+    # ==========================================
+    # SAVE USER MESSAGE
+    # ==========================================
+
+    save_message(
+        role="user",
+        content=user_input
+    )
 
     # ==========================================
     # STUDY PLAN TOOL
@@ -215,6 +255,11 @@ Return format:
 
         )
 
+        save_message(
+            role="assistant",
+            content=result["formatted_output"]
+        )
+
         return {
 
             "tool": "create_study_plan",
@@ -289,6 +334,11 @@ Return format:
                 "result": result["error"]
             }
 
+        save_message(
+            role="assistant",
+            content=f"Generated quiz on {topic}"
+        )
+
         return {
 
             "tool": "generate_quiz",
@@ -317,6 +367,11 @@ Return format:
             }
 
         result = summarize_text(text)
+
+        save_message(
+            role="assistant",
+            content=result
+        )
 
         return {
 
