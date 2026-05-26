@@ -93,7 +93,7 @@ def get_last_messages(
 
     query_vector = embedder.encode(query).tolist()
 
-    results = client.search(
+    results = client.query_points(
         collection_name=COLLECTION,
         query_vector=query_vector,
         query_filter=Filter(
@@ -127,7 +127,7 @@ def get_weak_topics(
         "quiz wrong incorrect weak"
     ).tolist()
 
-    results = client.search(
+    results = client.query_points(
         collection_name=COLLECTION,
         query_vector=query_vector,
         query_filter=Filter(
