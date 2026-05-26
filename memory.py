@@ -22,7 +22,7 @@ embedder = SentenceTransformer(
 # ==========================================
 
 client = QdrantClient(
-    location=":memory:"
+    path="qdrant_data"
 )
 
 COLLECTION = "chat_memory"
@@ -31,24 +31,31 @@ COLLECTION = "chat_memory"
 # CREATE COLLECTION
 # ==========================================
 
-client.recreate_collection(
-    collection_name=COLLECTION,
-    vectors_config=VectorParams(
-        size=384,
-        distance=Distance.COSINE
+collections = client.get_collections().collections
+
+collection_names = [
+    c.name
+    for c in collections
+]
+
+if COLLECTION not in collection_names:
+
+    client.create_collection(
+        collection_name=COLLECTION,
+        vectors_config=VectorParams(
+            size=384,
+            distance=Distance.COSINE
+        )
     )
-)
 
 # ==========================================
 # SAVE MESSAGE
 # ==========================================
 
 def save_message(
-    role: str,
-    content: str,
-    session_id: str = "default",
-    topic_tags: list = None,
-    weak_topics: list = None
+    role,
+    content,
+    session_id="default"
 ):
 
     vector = embedder.encode(
@@ -59,8 +66,6 @@ def save_message(
         "role": role,
         "content": content,
         "session_id": session_id,
-        "topic_tags": topic_tags or [],
-        "weak_topics": weak_topics or [],
         "timestamp": datetime.now().isoformat()
     }
 
@@ -80,60 +85,66 @@ def save_message(
 # ==========================================
 
 def get_last_messages(
-    query: str,
-    session_id: str = "default",
-    limit: int = 5
+    query,
+    session_id="default",
+    limit=5
 ):
 
     query_vector = embedder.encode(
         query
     ).tolist()
 
-    results = client.search(
+    hits = client.search_batch(
         collection_name=COLLECTION,
-        query_vector=query_vector,
-        limit=limit
-    )
+        requests=[
+            {
+                "vector": query_vector,
+                "limit": limit
+            }
+        ]
+    )[0]
 
-    filtered_results = []
+    results = []
 
-    for result in results:
+    for hit in hits:
 
-        payload = result.payload
+        payload = hit.payload
 
         if payload.get(
             "session_id"
         ) == session_id:
 
-            filtered_results.append(
-                payload
-            )
+            results.append(payload)
 
-    return filtered_results
+    return results
 
 # ==========================================
 # GET WEAK TOPICS
 # ==========================================
 
 def get_weak_topics(
-    session_id: str = "default"
+    session_id="default"
 ):
 
     query_vector = embedder.encode(
-        "quiz wrong incorrect weak"
+        "weak incorrect wrong quiz"
     ).tolist()
 
-    results = client.search(
+    hits = client.search_batch(
         collection_name=COLLECTION,
-        query_vector=query_vector,
-        limit=10
-    )
+        requests=[
+            {
+                "vector": query_vector,
+                "limit": 10
+            }
+        ]
+    )[0]
 
     weak_topics = []
 
-    for result in results:
+    for hit in hits:
 
-        payload = result.payload
+        payload = hit.payload
 
         if payload.get(
             "session_id"
