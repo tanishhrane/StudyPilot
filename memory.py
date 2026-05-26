@@ -1,6 +1,8 @@
+# memory.py
 import os
 import pickle
 import uuid
+
 import numpy as np
 import faiss
 
@@ -8,43 +10,49 @@ from sentence_transformers import SentenceTransformer
 from datetime import datetime
 
 # ==========================================
-# INIT
+# CONSTANTS
 # ==========================================
 
-EMBEDDING_DIM   = 384
-INDEX_PATH      = "faiss_index.bin"
-METADATA_PATH   = "faiss_metadata.pkl"
+EMBEDDING_DIM = 384
+INDEX_PATH    = "faiss_index.bin"
+META_PATH     = "faiss_metadata.pkl"
+
+# ==========================================
+# INIT EMBEDDER
+# ==========================================
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 # ==========================================
-# LOAD OR CREATE INDEX
+# LOAD OR CREATE FAISS INDEX
 # ==========================================
 
 def _load_index():
+
     if (
         os.path.exists(INDEX_PATH)
         and
-        os.path.exists(METADATA_PATH)
+        os.path.exists(META_PATH)
     ):
+
         index = faiss.read_index(INDEX_PATH)
 
-        with open(METADATA_PATH, "rb") as f:
+        with open(META_PATH, "rb") as f:
             metadata = pickle.load(f)
 
     else:
-        # IndexFlatIP = cosine similarity
-        # (with normalized vectors)
+
         index    = faiss.IndexFlatIP(EMBEDDING_DIM)
-        metadata = []   # list of dicts, one per vector
+        metadata = []
 
     return index, metadata
 
 
 def _save_index(index, metadata):
+
     faiss.write_index(index, INDEX_PATH)
 
-    with open(METADATA_PATH, "wb") as f:
+    with open(META_PATH, "wb") as f:
         pickle.dump(metadata, f)
 
 
@@ -57,10 +65,12 @@ _index, _metadata = _load_index()
 # ==========================================
 
 def _embed(text: str) -> np.ndarray:
+
     vector = embedder.encode(
         text,
-        normalize_embeddings=True   # required for cosine via IP
+        normalize_embeddings=True
     )
+
     return vector.astype("float32").reshape(1, -1)
 
 
@@ -74,6 +84,7 @@ def save_message(
     session_id="default",
     weak_topics=None
 ):
+
     global _index, _metadata
 
     vector = _embed(content)
@@ -101,18 +112,19 @@ def get_last_messages(
     session_id="default",
     limit=5
 ):
+
     global _index, _metadata
 
-    # Safety: nothing stored yet
     if _index.ntotal == 0:
         return []
 
     query_vector = _embed(query)
 
-    # Search top-k across all vectors
-    k = min(limit * 4, _index.ntotal)   # oversample then filter
+    k = min(limit * 4, _index.ntotal)
 
-    scores, indices = _index.search(query_vector, k)
+    scores, indices = _index.search(
+        query_vector, k
+    )
 
     results = []
 
@@ -144,6 +156,7 @@ def get_last_messages(
 # ==========================================
 
 def get_weak_topics(session_id="default"):
+
     global _index, _metadata
 
     if _index.ntotal == 0:
@@ -171,6 +184,8 @@ def get_weak_topics(session_id="default"):
         if entry["session_id"] != session_id:
             continue
 
-        weak.extend(entry.get("weak_topics", []))
+        weak.extend(
+            entry.get("weak_topics", [])
+        )
 
     return list(set(filter(None, weak)))
