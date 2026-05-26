@@ -21,7 +21,9 @@ embedder = SentenceTransformer(
 # QDRANT CLIENT
 # ==========================================
 
-client = QdrantClient(":memory:")
+client = QdrantClient(
+    location=":memory:"
+)
 
 COLLECTION = "chat_memory"
 
@@ -29,20 +31,13 @@ COLLECTION = "chat_memory"
 # CREATE COLLECTION
 # ==========================================
 
-existing_collections = [
-    collection.name
-    for collection in client.get_collections().collections
-]
-
-if COLLECTION not in existing_collections:
-
-    client.create_collection(
-        collection_name=COLLECTION,
-        vectors_config=VectorParams(
-            size=384,
-            distance=Distance.COSINE
-        )
+client.recreate_collection(
+    collection_name=COLLECTION,
+    vectors_config=VectorParams(
+        size=384,
+        distance=Distance.COSINE
     )
+)
 
 # ==========================================
 # SAVE MESSAGE
@@ -56,7 +51,9 @@ def save_message(
     weak_topics: list = None
 ):
 
-    vector = embedder.encode(content).tolist()
+    vector = embedder.encode(
+        content
+    ).tolist()
 
     payload = {
         "role": role,
@@ -104,9 +101,13 @@ def get_last_messages(
 
         payload = result.payload
 
-        if payload.get("session_id") == session_id:
+        if payload.get(
+            "session_id"
+        ) == session_id:
 
-            filtered_results.append(payload)
+            filtered_results.append(
+                payload
+            )
 
     return filtered_results
 
@@ -134,7 +135,9 @@ def get_weak_topics(
 
         payload = result.payload
 
-        if payload.get("session_id") == session_id:
+        if payload.get(
+            "session_id"
+        ) == session_id:
 
             weak_topics.extend(
                 payload.get(
@@ -143,4 +146,6 @@ def get_weak_topics(
                 )
             )
 
-    return list(set(weak_topics))
+    return list(
+        set(weak_topics)
+    )
