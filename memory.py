@@ -107,12 +107,12 @@ def get_last_messages(
             ]
         ),
         limit=limit,
-        score_threshold=0.5
+        
     )
 
     return [
         result.payload
-        for result in results
+        for result in result.points
     ]
 
 # ==========================================
@@ -141,7 +141,7 @@ def get_weak_topics(
             ]
         ),
         limit=10,
-        score_threshold=0.4
+        
     )
 
     weak_topics = []
