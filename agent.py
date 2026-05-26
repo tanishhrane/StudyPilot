@@ -1,3 +1,4 @@
+# agent.py
 import json
 
 from datetime import datetime
@@ -10,14 +11,15 @@ from tools.summarizer import summarize_text
 
 from memory import (
     save_message,
-    get_last_messages
+    get_last_messages,
+    get_weak_topics
 )
 
 from config import DEBUG
 
 
 # ==========================================
-# Main Agent Function
+# MAIN AGENT FUNCTION
 # ==========================================
 
 def run_agent(user_input):
@@ -81,7 +83,8 @@ Return format:
 
         memory_context += (
             f"{msg['role']}: "
-            f"{msg['content']}\n"
+            f"{msg['content']}
+"
         )
 
     enhanced_input = f"""
@@ -112,13 +115,10 @@ Current User Input:
         if DEBUG:
 
             print("\n[DEBUG] Raw LLM Output:")
-
             print(decision)
 
         return {
-
             "tool": "error",
-
             "result": (
                 "Error: Agent failed "
                 "to return valid JSON."
@@ -163,119 +163,59 @@ Current User Input:
 
         days = arguments.get("days")
 
-        start_date = arguments.get(
-            "start_date"
-        )
+        start_date = arguments.get("start_date")
 
-        time_slot = arguments.get(
-            "time_slot"
-        )
-
-        # ==========================================
-        # REQUIRED FIELD CHECK
-        # ==========================================
+        time_slot = arguments.get("time_slot")
 
         if not topic:
-
             return {
-
                 "tool": "error",
-
-                "result": (
-                    "Error: Missing study topic."
-                )
+                "result": "Error: Missing study topic."
             }
 
         if not time_slot:
-
             return {
-
                 "tool": "error",
-
                 "result": (
                     "Please rewrite your prompt "
                     "with your preferred daily study time.\n\n"
-
                     "Example:\n\n"
-
                     "'Make a 7-day ML study plan "
                     "from 6 PM to 8 PM'"
                 )
             }
 
-        # ==========================================
-        # DEFAULT DAYS
-        # ==========================================
-
         if not days:
-
             days = 7
 
-        # ==========================================
-        # DEFAULT START DATE
-        # ==========================================
-
         if not start_date:
-
             today = datetime.today()
-
-            start_date = today.strftime(
-                "%Y-%m-%d"
-            )
-
-        # ==========================================
-        # VALIDATE DAYS
-        # ==========================================
+            start_date = today.strftime("%A %Y-%m-%d")
 
         try:
-
             days = int(days)
-
         except (ValueError, TypeError):
-
             return {
-
                 "tool": "error",
-
-                "result": (
-                    "Error: Days must be a number."
-                )
+                "result": "Error: Number of days must be a number."
             }
 
-        # ==========================================
-        # GENERATE STUDY PLAN
-        # ==========================================
-
         result = create_study_plan(
-
             topic,
             days,
             start_date,
             time_slot
-
         )
 
         save_message(
             role="assistant",
-            content=result["formatted_output"]
+            content=result.get("formatted_output", "")
         )
 
         return {
-
             "tool": "create_study_plan",
-
-            "result": f"""
-==============================
-📘 StudyPilot Result
-==============================
-
-{result['formatted_output']}
-
-==============================
-""",
-
+            "result": result["formatted_output"],
             "plan_json": result["plan_json"]
-
         }
 
     # ==========================================
@@ -286,16 +226,11 @@ Current User Input:
 
         topic = arguments.get("topic")
 
-        num_questions = arguments.get(
-            "num_questions"
-        )
+        num_questions = arguments.get("num_questions")
 
         if not topic or not num_questions:
-
             return {
-
                 "tool": "error",
-
                 "result": (
                     "Error: Missing topic "
                     "or question count."
@@ -303,59 +238,41 @@ Current User Input:
             }
 
         try:
-
-            num_questions = int(
-                num_questions
-            )
-
+            num_questions = int(num_questions)
         except (ValueError, TypeError):
-
             return {
-
                 "tool": "error",
-
                 "result": (
                     "Error: Number of questions "
                     "must be a number."
                 )
             }
-        # ── ADD THIS BLOCK ──────────────────────
-        weak = get_weak_topics(session_id="default")
 
-        if weak:
-            weak_topics_str = ", ".join(weak)
-        else:
-            weak_topics_str = None
-        # ────────────────────────────────────────
+        # ==========================================
+        # FETCH WEAK TOPICS
+        # ==========================================
+
+        weak = get_weak_topics(
+            session_id="default"
+        )
+
+        weak_topics_str = (
+            ", ".join(weak) if weak else None
+        )
+
+        # ==========================================
+        # GENERATE QUIZ WITH WEAK TOPICS
+        # ==========================================
 
         result = generate_quiz(
             topic,
             num_questions,
-            weak_topics_str    # ADD this argument
+            weak_topics_str
         )
 
         if "error" in result:
             return {
                 "tool": "error",
-                "result": result["error"]
-            }
-
-        return {
-            "tool": "generate_quiz",
-            "quiz_data": result
-        }
-
-        result = generate_quiz(
-            topic,
-            num_questions
-        )
-
-        if "error" in result:
-
-            return {
-
-                "tool": "error",
-
                 "result": result["error"]
             }
 
@@ -365,9 +282,7 @@ Current User Input:
         )
 
         return {
-
             "tool": "generate_quiz",
-
             "quiz_data": result
         }
 
@@ -380,15 +295,9 @@ Current User Input:
         text = arguments.get("text")
 
         if not text:
-
             return {
-
                 "tool": "error",
-
-                "result": (
-                    "Error: Missing text "
-                    "to summarize."
-                )
+                "result": "Error: Missing text to summarize."
             }
 
         result = summarize_text(text)
@@ -399,12 +308,10 @@ Current User Input:
         )
 
         return {
-
             "tool": "summarize_text",
-
             "result": f"""
 ==============================
-📄 Summary
+\U0001f4c4 Summary
 ==============================
 
 {result}
@@ -420,10 +327,6 @@ Current User Input:
     else:
 
         return {
-
             "tool": "error",
-
-            "result": (
-                "Error: Unknown tool selected."
-            )
+            "result": "Error: Unknown tool selected."
         }

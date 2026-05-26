@@ -4,7 +4,10 @@ from sentence_transformers import SentenceTransformer
 from datetime import datetime
 import uuid
 
-# ── Init ──────────────────────────────────────
+# ==========================================
+# INIT
+# ==========================================
+
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 chroma_client = chromadb.Client()
@@ -14,10 +17,16 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
-# ── Save message ──────────────────────────────
-def save_message(role: str, content: str,
-                 session_id: str = "default",
-                 weak_topics: list = None):
+# ==========================================
+# SAVE MESSAGE
+# ==========================================
+
+def save_message(
+    role,
+    content,
+    session_id="default",
+    weak_topics=None
+):
 
     vector = embedder.encode(content).tolist()
 
@@ -33,20 +42,31 @@ def save_message(role: str, content: str,
         }]
     )
 
-# ── Retrieve relevant messages ─────────────────
-def get_last_messages(query: str = "study session",
-                      session_id: str = "default",
-                      limit: int = 5) -> list[dict]:
+# ==========================================
+# GET LAST MESSAGES
+# ==========================================
+
+def get_last_messages(
+    query="study session",
+    session_id="default",
+    limit=5
+):
+
+    count = collection.count()
+
+    if count == 0:
+        return []
 
     query_vector = embedder.encode(query).tolist()
 
     results = collection.query(
         query_embeddings=[query_vector],
-        n_results=limit,
+        n_results=min(limit, count),
         where={"session_id": session_id}
     )
 
     messages = []
+
     for doc, meta in zip(
         results["documents"][0],
         results["metadatas"][0]
@@ -59,18 +79,29 @@ def get_last_messages(query: str = "study session",
 
     return messages
 
-# ── Get weak topics ────────────────────────────
-def get_weak_topics(session_id: str = "default") -> list[str]:
+# ==========================================
+# GET WEAK TOPICS
+# ==========================================
+
+def get_weak_topics(session_id="default"):
+
+    count = collection.count()
+
+    if count == 0:
+        return []
 
     results = collection.query(
         query_embeddings=[
-            embedder.encode("quiz wrong incorrect weak").tolist()
+            embedder.encode(
+                "quiz wrong incorrect weak"
+            ).tolist()
         ],
-        n_results=10,
+        n_results=min(10, count),
         where={"session_id": session_id}
     )
 
     weak = []
+
     for meta in results["metadatas"][0]:
         topics = meta.get("weak_topics", "")
         if topics:

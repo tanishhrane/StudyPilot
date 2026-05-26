@@ -3,7 +3,15 @@ import json
 from llm import call_llm
 
 
-def generate_quiz(topic, num_questions, weak_topics=None):  # ADD weak_topics
+# ==========================================
+# QUIZ GENERATOR
+# ==========================================
+
+def generate_quiz(
+    topic,
+    num_questions,
+    weak_topics=None
+):
 
     system_prompt = """
 You are an academic quiz generator.
@@ -31,27 +39,28 @@ Format:
 }
 """
 
-    # ── ADD weak topics instruction if available ──
     if weak_topics:
         weak_instruction = f"""
-IMPORTANT: The user has previously struggled with 
-these subtopics: {weak_topics}.
+IMPORTANT: The user has previously struggled
+with these subtopics: {weak_topics}.
 
 Prioritize questions on these weak areas.
 Make those questions slightly harder than usual.
 """
     else:
         weak_instruction = ""
-    # ─────────────────────────────────────────────
 
     user_prompt = f"""
-Generate {num_questions} multiple choice questions 
+Generate {num_questions} multiple choice questions
 on the topic: {topic}.
 
 {weak_instruction}
 """
 
-    response = call_llm(system_prompt, user_prompt)
+    response = call_llm(
+        system_prompt,
+        user_prompt
+    )
 
     try:
         quiz_data = json.loads(response)
@@ -59,9 +68,16 @@ on the topic: {topic}.
 
     except json.JSONDecodeError:
         return {
-            "error": "Failed to generate valid quiz JSON."
+            "error": (
+                "Failed to generate "
+                "valid quiz JSON."
+            )
         }
 
+
+# ==========================================
+# QUIZ EVALUATOR
+# ==========================================
 
 def evaluate_quiz(quiz_data, user_answers):
 
@@ -80,7 +96,9 @@ def evaluate_quiz(quiz_data, user_answers):
         if is_correct:
             score += 1
         else:
-            weak_topics.append(question["subtopic"])
+            weak_topics.append(
+                question["subtopic"]
+            )
 
         results.append({
             "question_id":    qid,

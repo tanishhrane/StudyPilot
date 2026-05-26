@@ -1,3 +1,5 @@
+# app.py
+
 # ==========================================
 # IMPORTS
 # ==========================================
@@ -10,6 +12,11 @@ from tools.quiz import evaluate_quiz
 
 from tools.calendar_sync import (
     sync_study_plan_to_calendar
+)
+
+from memory import (
+    save_message,
+    get_weak_topics
 )
 
 from auth import (
@@ -25,7 +32,7 @@ from auth import (
 
 st.set_page_config(
     page_title="StudyPilot",
-    page_icon="📘",
+    page_icon="\U0001f4d8",
     layout="centered"
 )
 
@@ -60,7 +67,7 @@ if "plan_json" not in st.session_state:
 # HEADER
 # ==========================================
 
-st.title("📘 StudyPilot")
+st.title("\U0001f4d8 StudyPilot")
 
 st.subheader(
     "Your Agentic AI Study Assistant"
@@ -75,82 +82,43 @@ if st.session_state.user is None:
 
     st.markdown("---")
 
-    st.subheader("🔐 Login / Signup")
+    st.subheader("\U0001f510 Login / Signup")
 
     auth_mode = st.selectbox(
-
         "Choose Option",
-
         ["Login", "Signup"]
-
     )
 
-    email = st.text_input(
-        "Email"
-    )
+    email = st.text_input("Email")
 
     password = st.text_input(
         "Password",
         type="password"
     )
 
-    # ==========================================
-    # LOGIN
-    # ==========================================
-
     if auth_mode == "Login":
 
         if st.button("Login"):
 
-            user = login_user(
-                email,
-                password
-            )
+            user = login_user(email, password)
 
             if user:
-
                 st.session_state.user = user
-
-                st.success(
-                    "Login successful!"
-                )
-
+                st.success("Login successful!")
                 st.rerun()
-
             else:
-
-                st.error(
-                    "Invalid email or password."
-                )
-
-    # ==========================================
-    # SIGNUP
-    # ==========================================
+                st.error("Invalid email or password.")
 
     else:
 
         if st.button("Create Account"):
 
-            user = signup_user(
-                email,
-                password
-            )
+            user = signup_user(email, password)
 
             if user:
-
-                st.success(
-                    "Account created successfully!"
-                )
-
+                st.success("Account created successfully!")
             else:
-
-                st.error(
-                    "Signup failed."
-                )
-
-    # ==========================================
-    # GOOGLE LOGIN
-    # ==========================================
+                st.error("Signup failed.")
 
     st.markdown("---")
 
@@ -161,20 +129,11 @@ if st.session_state.user is None:
         user_info = google_login()
 
         if user_info:
-
             st.session_state.user = user_info
-
-            st.success(
-                "Google Login Successful!"
-            )
-
+            st.success("Google Login Successful!")
             st.rerun()
-
         else:
-
-            st.error(
-                "Google Login Failed"
-            )
+            st.error("Google Login Failed")
 
     st.stop()
 
@@ -185,43 +144,22 @@ if st.session_state.user is None:
 
 if st.session_state.user:
 
-    st.success(
-        "Logged in successfully"
-    )
-
-    # ==========================================
-    # DISPLAY USER INFO
-    # ==========================================
+    st.success("Logged in successfully")
 
     if "name" in st.session_state.user:
-
-        st.write(
-            "Name:",
-            st.session_state.user["name"]
-        )
+        st.write("Name:", st.session_state.user["name"])
 
     if "email" in st.session_state.user:
-
-        st.write(
-            "Email:",
-            st.session_state.user["email"]
-        )
+        st.write("Email:", st.session_state.user["email"])
 
     if "picture" in st.session_state.user:
-
         st.image(
             st.session_state.user["picture"],
             width=80
         )
 
-    # ==========================================
-    # LOGOUT
-    # ==========================================
-
     if st.button("Logout"):
-
         st.session_state.user = None
-
         st.rerun()
 
 
@@ -251,11 +189,7 @@ user_input = st.text_area(
 if st.button("Generate"):
 
     if user_input.strip() == "":
-
-        st.warning(
-            "Please enter a prompt."
-        )
-
+        st.warning("Please enter a prompt.")
         st.stop()
 
     # ==========================================
@@ -263,16 +197,30 @@ if st.button("Generate"):
     # ==========================================
 
     st.session_state.quiz_submitted = False
-
     st.session_state.evaluation = None
+
+    # ==========================================
+    # WEAK TOPICS BANNER
+    # ==========================================
+
+    past_weak = get_weak_topics(
+        session_id="default"
+    )
+
+    if past_weak:
+
+        st.info(
+            f"\U0001f4cc Based on past quizzes, "
+            f"you previously struggled with: "
+            f"**{', '.join(past_weak)}**. "
+            f"A focused quiz on these will be generated."
+        )
 
     # ==========================================
     # RUN AGENT
     # ==========================================
 
-    result = run_agent(
-        user_input
-    )
+    result = run_agent(user_input)
 
     # ==========================================
     # DETECT CURRENT TOOL
@@ -287,10 +235,7 @@ if st.button("Generate"):
     if tool_used == "generate_quiz":
 
         st.session_state.current_mode = "quiz"
-
-        st.session_state.quiz = result[
-            "quiz_data"
-        ]
+        st.session_state.quiz = result["quiz_data"]
 
     # ==========================================
     # NORMAL MODE
@@ -299,26 +244,13 @@ if st.button("Generate"):
     else:
 
         st.session_state.current_mode = "normal"
-
         st.session_state.quiz = None
-
         st.session_state.quiz_submitted = False
-
         st.session_state.evaluation = None
-
-        st.session_state.normal_result = result[
-            "result"
-        ]
-
-        # ==========================================
-        # STORE PLAN JSON
-        # ==========================================
+        st.session_state.normal_result = result["result"]
 
         if tool_used == "create_study_plan":
-
-            st.session_state.plan_json = result.get(
-                "plan_json"
-            )
+            st.session_state.plan_json = result.get("plan_json")
 
 
 # ==========================================
@@ -326,68 +258,65 @@ if st.button("Generate"):
 # ==========================================
 
 if (
-
     st.session_state.quiz
-
     and
-
     st.session_state.current_mode == "quiz"
-
 ):
 
     quiz = st.session_state.quiz
 
     st.markdown("---")
 
-    st.header("📝 Quiz")
+    st.header("\U0001f4dd Quiz")
 
     user_answers = {}
 
     for question in quiz["questions"]:
 
         st.subheader(
-
             f"Q{question['id']}. "
             f"{question['question']}"
-
         )
 
         selected_answer = st.radio(
 
             "Choose your answer:",
 
-            options=list(
-                question["options"].keys()
-            ),
+            options=list(question["options"].keys()),
 
             format_func=lambda option:
                 f"{option}) "
                 f"{question['options'][option]}",
 
-            key=f"question_"
-                f"{question['id']}"
-
+            key=f"question_{question['id']}"
         )
 
-        user_answers[
-            question["id"]
-        ] = selected_answer
+        user_answers[question["id"]] = selected_answer
 
         st.markdown("")
 
     if st.button("Submit Quiz"):
 
-        evaluation = evaluate_quiz(
-
-            quiz,
-
-            user_answers
-
-        )
+        evaluation = evaluate_quiz(quiz, user_answers)
 
         st.session_state.evaluation = evaluation
-
         st.session_state.quiz_submitted = True
+
+        # ==========================================
+        # SAVE WEAK TOPICS TO MEMORY
+        # ==========================================
+
+        if evaluation["weak_topics"]:
+
+            save_message(
+                role="system",
+                content=(
+                    f"User struggled with: "
+                    f"{', '.join(evaluation['weak_topics'])}"
+                ),
+                session_id="default",
+                weak_topics=evaluation["weak_topics"]
+            )
 
 
 # ==========================================
@@ -396,63 +325,41 @@ if (
 
 if st.session_state.quiz_submitted:
 
-    evaluation = (
-        st.session_state.evaluation
-    )
+    evaluation = st.session_state.evaluation
 
     st.markdown("---")
 
-    st.header("📊 Quiz Results")
+    st.header("\U0001f4ca Quiz Results")
 
     st.success(
-
         f"Score: "
         f"{evaluation['score']} / "
         f"{evaluation['total']}"
-
     )
 
     if evaluation["weak_topics"]:
 
         st.subheader("Weak Topics")
 
-        for topic in evaluation[
-            "weak_topics"
-        ]:
-
+        for topic in evaluation["weak_topics"]:
             st.write(f"- {topic}")
 
     else:
 
-        st.success(
-            "Excellent performance!"
-        )
+        st.success("Excellent performance!")
 
     st.subheader("Detailed Results")
 
     for item in evaluation["results"]:
 
         if item["is_correct"]:
-
             st.success(
-
-                f"Question "
-                f"{item['question_id']} "
-                f"→ Correct"
-
+                f"Question {item['question_id']} \U00002192 Correct"
             )
-
         else:
-
             st.error(
-
-                f"Question "
-                f"{item['question_id']} "
-                f"→ Wrong "
-
-                f"(Correct Answer: "
-                f"{item['correct_answer']})"
-
+                f"Question {item['question_id']} \U00002192 Wrong "
+                f"(Correct Answer: {item['correct_answer']})"
             )
 
 
@@ -461,23 +368,16 @@ if st.session_state.quiz_submitted:
 # ==========================================
 
 if (
-
-    st.session_state.current_mode
-    == "normal"
-
+    st.session_state.current_mode == "normal"
     and
-
     st.session_state.normal_result
-
 ):
 
     st.markdown("---")
 
-    st.header("🔎 Result")
+    st.header("\U0001f50e Result")
 
-    st.write(
-        st.session_state.normal_result
-    )
+    st.write(st.session_state.normal_result)
 
 
 # ==========================================
@@ -488,14 +388,10 @@ if st.session_state.plan_json:
 
     st.markdown("---")
 
-    if st.button(
-        "📅 Sync Plan To Google Calendar"
-    ):
+    if st.button("\U0001f4c5 Sync Plan To Google Calendar"):
 
         sync_result = sync_study_plan_to_calendar(
-
             st.session_state.plan_json
-
         )
 
         st.success(sync_result)
