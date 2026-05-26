@@ -319,6 +319,31 @@ Current User Input:
                     "must be a number."
                 )
             }
+        # ── ADD THIS BLOCK ──────────────────────
+        weak = get_weak_topics(session_id="default")
+
+        if weak:
+            weak_topics_str = ", ".join(weak)
+        else:
+            weak_topics_str = None
+        # ────────────────────────────────────────
+
+        result = generate_quiz(
+            topic,
+            num_questions,
+            weak_topics_str    # ADD this argument
+        )
+
+        if "error" in result:
+            return {
+                "tool": "error",
+                "result": result["error"]
+            }
+
+        return {
+            "tool": "generate_quiz",
+            "quiz_data": result
+        }
 
         result = generate_quiz(
             topic,

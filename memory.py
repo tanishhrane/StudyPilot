@@ -1,162 +1,79 @@
-from qdrant_client import QdrantClient
-from qdrant_client.models import (
-    Distance,
-    VectorParams,
-    PointStruct
-)
-
+# memory.py
+import chromadb
 from sentence_transformers import SentenceTransformer
 from datetime import datetime
 import uuid
 
-# ==========================================
-# EMBEDDING MODEL
-# ==========================================
+# ── Init ──────────────────────────────────────
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-embedder = SentenceTransformer(
-    "all-MiniLM-L6-v2"
+chroma_client = chromadb.Client()
+
+collection = chroma_client.get_or_create_collection(
+    name="chat_memory",
+    metadata={"hnsw:space": "cosine"}
 )
 
-# ==========================================
-# QDRANT CLIENT
-# ==========================================
+# ── Save message ──────────────────────────────
+def save_message(role: str, content: str,
+                 session_id: str = "default",
+                 weak_topics: list = None):
 
-client = QdrantClient(
-    path="qdrant_data"
-)
+    vector = embedder.encode(content).tolist()
 
-COLLECTION = "chat_memory"
-
-# ==========================================
-# CREATE COLLECTION
-# ==========================================
-
-collections = client.get_collections().collections
-
-collection_names = [
-    c.name
-    for c in collections
-]
-
-if COLLECTION not in collection_names:
-
-    client.create_collection(
-        collection_name=COLLECTION,
-        vectors_config=VectorParams(
-            size=384,
-            distance=Distance.COSINE
-        )
+    collection.add(
+        ids=[str(uuid.uuid4())],
+        embeddings=[vector],
+        documents=[content],
+        metadatas=[{
+            "role":        role,
+            "session_id":  session_id,
+            "weak_topics": ",".join(weak_topics or []),
+            "timestamp":   datetime.now().isoformat()
+        }]
     )
 
-# ==========================================
-# SAVE MESSAGE
-# ==========================================
+# ── Retrieve relevant messages ─────────────────
+def get_last_messages(query: str = "study session",
+                      session_id: str = "default",
+                      limit: int = 5) -> list[dict]:
 
-def save_message(
-    role,
-    content,
-    session_id="default"
-):
+    query_vector = embedder.encode(query).tolist()
 
-    vector = embedder.encode(
-        content
-    ).tolist()
-
-    payload = {
-        "role": role,
-        "content": content,
-        "session_id": session_id,
-        "timestamp": datetime.now().isoformat()
-    }
-
-    client.upsert(
-        collection_name=COLLECTION,
-        points=[
-            PointStruct(
-                id=str(uuid.uuid4()),
-                vector=vector,
-                payload=payload
-            )
-        ]
+    results = collection.query(
+        query_embeddings=[query_vector],
+        n_results=limit,
+        where={"session_id": session_id}
     )
 
-# ==========================================
-# GET RELEVANT MESSAGES
-# ==========================================
+    messages = []
+    for doc, meta in zip(
+        results["documents"][0],
+        results["metadatas"][0]
+    ):
+        messages.append({
+            "content":    doc,
+            "role":       meta["role"],
+            "session_id": meta["session_id"]
+        })
 
-def get_last_messages(
-    query,
-    session_id="default",
-    limit=5
-):
+    return messages
 
-    query_vector = embedder.encode(
-        query
-    ).tolist()
+# ── Get weak topics ────────────────────────────
+def get_weak_topics(session_id: str = "default") -> list[str]:
 
-    hits = client.search_batch(
-        collection_name=COLLECTION,
-        requests=[
-            {
-                "vector": query_vector,
-                "limit": limit
-            }
-        ]
-    )[0]
-
-    results = []
-
-    for hit in hits:
-
-        payload = hit.payload
-
-        if payload.get(
-            "session_id"
-        ) == session_id:
-
-            results.append(payload)
-
-    return results
-
-# ==========================================
-# GET WEAK TOPICS
-# ==========================================
-
-def get_weak_topics(
-    session_id="default"
-):
-
-    query_vector = embedder.encode(
-        "weak incorrect wrong quiz"
-    ).tolist()
-
-    hits = client.search_batch(
-        collection_name=COLLECTION,
-        requests=[
-            {
-                "vector": query_vector,
-                "limit": 10
-            }
-        ]
-    )[0]
-
-    weak_topics = []
-
-    for hit in hits:
-
-        payload = hit.payload
-
-        if payload.get(
-            "session_id"
-        ) == session_id:
-
-            weak_topics.extend(
-                payload.get(
-                    "weak_topics",
-                    []
-                )
-            )
-
-    return list(
-        set(weak_topics)
+    results = collection.query(
+        query_embeddings=[
+            embedder.encode("quiz wrong incorrect weak").tolist()
+        ],
+        n_results=10,
+        where={"session_id": session_id}
     )
+
+    weak = []
+    for meta in results["metadatas"][0]:
+        topics = meta.get("weak_topics", "")
+        if topics:
+            weak.extend(topics.split(","))
+
+    return list(set(filter(None, weak)))
