@@ -1,4 +1,3 @@
-# agent.py
 import json
 
 from datetime import datetime
@@ -80,11 +79,9 @@ Return format:
     memory_context = ""
 
     for msg in history:
-
         memory_context += (
             f"{msg['role']}: "
-            f"{msg['content']}
-"
+            f"{msg['content']}\n"
         )
 
     enhanced_input = f"""
@@ -105,15 +102,11 @@ Current User Input:
     )
 
     try:
-
-        parsed = json.loads(
-            decision.strip()
-        )
+        parsed = json.loads(decision.strip())
 
     except json.JSONDecodeError:
 
         if DEBUG:
-
             print("\n[DEBUG] Raw LLM Output:")
             print(decision)
 
@@ -127,22 +120,11 @@ Current User Input:
 
     tool_name = parsed.get("tool_name")
 
-    arguments = parsed.get(
-        "arguments",
-        {}
-    )
+    arguments = parsed.get("arguments", {})
 
     if DEBUG:
-
-        print(
-            f"\n[DEBUG] Tool Selected: "
-            f"{tool_name}"
-        )
-
-        print(
-            f"[DEBUG] Arguments: "
-            f"{arguments}"
-        )
+        print(f"\n[DEBUG] Tool Selected: {tool_name}")
+        print(f"[DEBUG] Arguments: {arguments}")
 
     # ==========================================
     # SAVE USER MESSAGE
@@ -159,13 +141,10 @@ Current User Input:
 
     if tool_name == "create_study_plan":
 
-        topic = arguments.get("topic")
-
-        days = arguments.get("days")
-
+        topic      = arguments.get("topic")
+        days       = arguments.get("days")
         start_date = arguments.get("start_date")
-
-        time_slot = arguments.get("time_slot")
+        time_slot  = arguments.get("time_slot")
 
         if not topic:
             return {
@@ -189,7 +168,7 @@ Current User Input:
             days = 7
 
         if not start_date:
-            today = datetime.today()
+            today      = datetime.today()
             start_date = today.strftime("%A %Y-%m-%d")
 
         try:
@@ -213,8 +192,8 @@ Current User Input:
         )
 
         return {
-            "tool": "create_study_plan",
-            "result": result["formatted_output"],
+            "tool":      "create_study_plan",
+            "result":    result["formatted_output"],
             "plan_json": result["plan_json"]
         }
 
@@ -224,8 +203,7 @@ Current User Input:
 
     elif tool_name == "generate_quiz":
 
-        topic = arguments.get("topic")
-
+        topic         = arguments.get("topic")
         num_questions = arguments.get("num_questions")
 
         if not topic or not num_questions:
@@ -252,16 +230,14 @@ Current User Input:
         # FETCH WEAK TOPICS
         # ==========================================
 
-        weak = get_weak_topics(
-            session_id="default"
-        )
+        weak = get_weak_topics(session_id="default")
 
         weak_topics_str = (
             ", ".join(weak) if weak else None
         )
 
         # ==========================================
-        # GENERATE QUIZ WITH WEAK TOPICS
+        # GENERATE QUIZ
         # ==========================================
 
         result = generate_quiz(
@@ -272,7 +248,7 @@ Current User Input:
 
         if "error" in result:
             return {
-                "tool": "error",
+                "tool":   "error",
                 "result": result["error"]
             }
 
@@ -282,7 +258,7 @@ Current User Input:
         )
 
         return {
-            "tool": "generate_quiz",
+            "tool":      "generate_quiz",
             "quiz_data": result
         }
 
@@ -296,7 +272,7 @@ Current User Input:
 
         if not text:
             return {
-                "tool": "error",
+                "tool":   "error",
                 "result": "Error: Missing text to summarize."
             }
 
@@ -311,7 +287,7 @@ Current User Input:
             "tool": "summarize_text",
             "result": f"""
 ==============================
-\U0001f4c4 Summary
+📄 Summary
 ==============================
 
 {result}
@@ -327,6 +303,6 @@ Current User Input:
     else:
 
         return {
-            "tool": "error",
+            "tool":   "error",
             "result": "Error: Unknown tool selected."
         }
