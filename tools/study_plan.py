@@ -1,3 +1,7 @@
+import json
+
+from datetime import datetime, timedelta
+
 from llm import call_llm
 
 
@@ -17,16 +21,43 @@ def create_study_plan(
     system_prompt = """
 You are an academic planning assistant.
 
-Create clean and structured study plans.
+You MUST return ONLY valid JSON.
 
-Keep responses:
-- concise
-- organized
-- easy to follow
+Do NOT include explanations.
+Do NOT include markdown.
+Do NOT include extra text.
+
+Return format:
+
+{
+  "plan_title": "",
+  "days": [
+    {
+      "day_number": 1,
+      "start_time": "09:00 AM",
+      "end_time": "12:00 PM",
+      "topic": "",
+      "tasks": [
+        {
+          "task": "",
+          "description": ""
+        }
+      ]
+    }
+  ]
+}
+
+IMPORTANT:
+- start_time and end_time must contain ONLY time
+- Do NOT include dates inside time fields
+- Example valid time:
+  "09:00 AM"
+- Example invalid time:
+  "2024-01-01 09:00:00"
 """
 
     user_prompt = f"""
-Create a structured {days}-day study plan
+Create a {days}-day study plan
 for the topic: {topic}.
 
 The plan should start from:
@@ -37,11 +68,19 @@ Daily study time:
 
 Requirements:
 
-- Divide into daily study goals
-- Mention concepts to study
-- Include practice/revision tasks
-- Keep each day realistic
-- Keep output clean and structured
+- Divide the topic progressively from beginner to advanced
+- Each day should teach SPECIFIC concepts
+- Mention exact subtopics to learn
+- Include realistic coding/practice tasks
+- Avoid vague tasks like:
+  "Study concepts"
+  "Review topic"
+- Make tasks practical and actionable
+- Include implementation/problem-solving tasks where possible
+- Each day should feel different and meaningful
+- Keep the progression logical
+- Use sequential day numbers
+- Return ONLY valid JSON
 """
 
     response = call_llm(
@@ -51,4 +90,174 @@ Requirements:
 
     )
 
-    return response
+    print("\n========== RAW LLM RESPONSE ==========\n")
+
+    print(response)
+
+    print("\n======================================\n")
+
+    try:
+
+        parsed_response = json.loads(
+            response
+        )
+
+        formatted_output = ""
+
+        formatted_output += (
+            f"📘 "
+            f"{parsed_response['plan_title']}\n\n"
+        )
+
+        # ==========================================
+        # SAFE DATE HANDLING
+        # ==========================================
+
+        if start_date == "today":
+
+            start_date = datetime.today().strftime(
+                "%Y-%m-%d"
+            )
+
+        base_date = datetime.strptime(
+            start_date,
+            "%Y-%m-%d"
+        )
+
+        # ==========================================
+        # GENERATE DAYS
+        # ==========================================
+
+        for index, study_day in enumerate(
+
+            parsed_response["days"]
+
+        ):
+
+            current_date = (
+
+                base_date +
+
+                timedelta(days=index)
+
+            ).strftime("%Y-%m-%d")
+
+            # ==========================================
+            # UPDATE JSON DATE
+            # ==========================================
+
+            study_day["date"] = current_date
+
+            # ==========================================
+            # SAFE FIELD ACCESS
+            # ==========================================
+
+            day_number = study_day.get(
+                "day_number",
+                index + 1
+            )
+
+            start_time = study_day.get(
+                "start_time",
+                "09:00 AM"
+            )
+
+            end_time = study_day.get(
+                "end_time",
+                "12:00 PM"
+            )
+
+            topic_name = study_day.get(
+                "topic",
+                "Study Session"
+            )
+
+            tasks = study_day.get(
+                "tasks",
+                []
+            )
+
+            # ==========================================
+            # FORMATTED OUTPUT
+            # ==========================================
+
+            formatted_output += (
+
+                f"📅 Day "
+                f"{day_number} "
+                f"({current_date})\n"
+
+            )
+
+            formatted_output += (
+                f"⏰ "
+                f"{start_time} "
+                f"- "
+                f"{end_time}\n"
+            )
+
+            formatted_output += (
+                f"📖 Topic: "
+                f"{topic_name}\n"
+            )
+
+            formatted_output += (
+                "Tasks:\n"
+            )
+
+            # ==========================================
+            # TASKS
+            # ==========================================
+
+            for task in tasks:
+
+                if isinstance(task, dict):
+
+                    task_title = task.get(
+                        "task",
+                        "Study Task"
+                    )
+
+                    task_description = task.get(
+                        "description",
+                        ""
+                    )
+
+                    formatted_output += (
+                        f"- {task_title}\n"
+                    )
+
+                    if task_description:
+
+                        formatted_output += (
+                            f"   • "
+                            f"{task_description}\n"
+                        )
+
+                else:
+
+                    formatted_output += (
+                        f"- {task}\n"
+                    )
+
+            formatted_output += "\n"
+
+        return {
+
+            "formatted_output":
+                formatted_output,
+
+            "plan_json":
+                parsed_response
+
+        }
+
+    except Exception as e:
+
+        print("\n========== STUDY PLAN ERROR ==========\n")
+
+        print(e)
+
+        print("\n======================================\n")
+
+        raise e

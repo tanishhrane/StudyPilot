@@ -180,7 +180,7 @@ Return format:
             today = datetime.today()
 
             start_date = today.strftime(
-                "%A %Y-%m-%d"
+                "%Y-%m-%d"
             )
 
         # ==========================================
@@ -224,10 +224,13 @@ Return format:
 📘 StudyPilot Result
 ==============================
 
-{result}
+{result['formatted_output']}
 
 ==============================
-"""
+""",
+
+            "plan_json": result["plan_json"]
+
         }
 
     # ==========================================

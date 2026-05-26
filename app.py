@@ -5,7 +5,12 @@
 import streamlit as st
 
 from agent import run_agent
+
 from tools.quiz import evaluate_quiz
+
+from tools.calendar_sync import (
+    sync_study_plan_to_calendar
+)
 
 from auth import (
     login_user,
@@ -46,6 +51,9 @@ if "normal_result" not in st.session_state:
 
 if "user" not in st.session_state:
     st.session_state.user = None
+
+if "plan_json" not in st.session_state:
+    st.session_state.plan_json = None
 
 
 # ==========================================
@@ -302,6 +310,16 @@ if st.button("Generate"):
             "result"
         ]
 
+        # ==========================================
+        # STORE PLAN JSON
+        # ==========================================
+
+        if tool_used == "create_study_plan":
+
+            st.session_state.plan_json = result.get(
+                "plan_json"
+            )
+
 
 # ==========================================
 # QUIZ UI
@@ -460,3 +478,24 @@ if (
     st.write(
         st.session_state.normal_result
     )
+
+
+# ==========================================
+# CALENDAR SYNC BUTTON
+# ==========================================
+
+if st.session_state.plan_json:
+
+    st.markdown("---")
+
+    if st.button(
+        "📅 Sync Plan To Google Calendar"
+    ):
+
+        sync_result = sync_study_plan_to_calendar(
+
+            st.session_state.plan_json
+
+        )
+
+        st.success(sync_result)
