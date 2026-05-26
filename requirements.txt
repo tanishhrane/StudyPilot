@@ -6,10 +6,8 @@ google-auth
 google-auth-oauthlib
 requests
 google-api-python-client
-google-auth
-google-auth-oauthlib
 google-auth-httplib2
 streamlit-oauth
-sentence-transformers
 faiss-cpu
+sentence-transformers
 numpy
