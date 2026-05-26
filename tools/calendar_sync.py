@@ -129,3 +129,4 @@ def sync_study_plan_to_calendar(plan_json):
         "Study plan synced "
         "to Google Calendar!"
     )
+print("hello world")

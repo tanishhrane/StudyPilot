@@ -41,7 +41,7 @@ auth = firebase.auth()
 
 
 # ==========================================
-# LOGIN FUNCTION
+# EMAIL LOGIN
 # ==========================================
 
 def login_user(email, password):
@@ -49,19 +49,25 @@ def login_user(email, password):
     try:
 
         user = auth.sign_in_with_email_and_password(
+
             email,
             password
+
         )
 
         return user
 
-    except Exception:
+    except Exception as e:
+
+        print("\nEMAIL LOGIN ERROR:\n")
+
+        print(e)
 
         return None
 
 
 # ==========================================
-# SIGNUP FUNCTION
+# EMAIL SIGNUP
 # ==========================================
 
 def signup_user(email, password):
@@ -69,16 +75,27 @@ def signup_user(email, password):
     try:
 
         user = auth.create_user_with_email_and_password(
+
             email,
             password
+
         )
 
         return user
 
-    except Exception:
+    except Exception as e:
+
+        print("\nSIGNUP ERROR:\n")
+
+        print(e)
 
         return None
-    
+
+
+# ==========================================
+# GOOGLE LOGIN
+# ==========================================
+
 def google_login():
 
     try:
@@ -88,28 +105,44 @@ def google_login():
             "client_secret.json",
 
             scopes=[
+
                 "openid",
+
                 "https://www.googleapis.com/auth/userinfo.email",
-                "https://www.googleapis.com/auth/userinfo.profile"
+
+                "https://www.googleapis.com/auth/userinfo.profile",
+
+                "https://www.googleapis.com/auth/calendar"
+
             ]
+
         )
 
         credentials = flow.run_local_server(
+
             port=0
+
         )
 
         request_object = requests.Request()
 
         user_info = id_token.verify_oauth2_token(
 
-            credentials._id_token,
+            credentials.id_token,
+
             request_object
 
         )
 
+        print("\nGOOGLE LOGIN SUCCESS\n")
+
+        print(user_info)
+
         return user_info
 
     except Exception as e:
+
+        print("\nGOOGLE LOGIN ERROR:\n")
 
         print(e)
 
