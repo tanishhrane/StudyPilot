@@ -2,10 +2,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
     VectorParams,
-    PointStruct,
-    Filter,
-    FieldCondition,
-    MatchValue
+    PointStruct
 )
 
 from sentence_transformers import SentenceTransformer
@@ -91,29 +88,27 @@ def get_last_messages(
     limit: int = 5
 ):
 
-    query_vector = embedder.encode(query).tolist()
+    query_vector = embedder.encode(
+        query
+    ).tolist()
 
-    results = client.query_points(
+    results = client.search(
         collection_name=COLLECTION,
         query_vector=query_vector,
-        query_filter=Filter(
-            must=[
-                FieldCondition(
-                    key="session_id",
-                    match=MatchValue(
-                        value=session_id
-                    )
-                )
-            ]
-        ),
-        limit=limit,
-        
+        limit=limit
     )
 
-    return [
-        result.payload
-        for result in result.points
-    ]
+    filtered_results = []
+
+    for result in results:
+
+        payload = result.payload
+
+        if payload.get("session_id") == session_id:
+
+            filtered_results.append(payload)
+
+    return filtered_results
 
 # ==========================================
 # GET WEAK TOPICS
@@ -127,32 +122,25 @@ def get_weak_topics(
         "quiz wrong incorrect weak"
     ).tolist()
 
-    results = client.query_points(
+    results = client.search(
         collection_name=COLLECTION,
         query_vector=query_vector,
-        query_filter=Filter(
-            must=[
-                FieldCondition(
-                    key="session_id",
-                    match=MatchValue(
-                        value=session_id
-                    )
-                )
-            ]
-        ),
-        limit=10,
-        
+        limit=10
     )
 
     weak_topics = []
 
     for result in results:
 
-        weak_topics.extend(
-            result.payload.get(
-                "weak_topics",
-                []
+        payload = result.payload
+
+        if payload.get("session_id") == session_id:
+
+            weak_topics.extend(
+                payload.get(
+                    "weak_topics",
+                    []
+                )
             )
-        )
 
     return list(set(weak_topics))
