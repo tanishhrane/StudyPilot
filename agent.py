@@ -169,7 +169,7 @@ Current User Input:
 
         if not start_date:
             today      = datetime.today()
-            start_date = today.strftime(%Y-%m-%d")
+            start_date = today.strftime("%Y-%m-%d")
 
         try:
             days = int(days)
@@ -306,3 +306,4 @@ Current User Input:
             "tool":   "error",
             "result": "Error: Unknown tool selected."
         }
+
