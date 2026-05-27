@@ -110,14 +110,106 @@ Requirements:
         )
 
         # ==========================================
-        # SAFE DATE HANDLING
+        # SMART DATE HANDLING
         # ==========================================
 
-        if start_date == "today":
+        start_date_lower = start_date.lower()
 
-            start_date = datetime.today().strftime(
-                "%Y-%m-%d"
+        today = datetime.today()
+
+        # ==========================================
+        # TODAY
+        # ==========================================
+
+        if start_date_lower == "today":
+
+            parsed_date = today
+
+        # ==========================================
+        # TOMORROW
+        # ==========================================
+
+        elif start_date_lower == "tomorrow":
+
+            parsed_date = (
+
+                today +
+
+                timedelta(days=1)
+
             )
+
+        # ==========================================
+        # WEEKDAY HANDLING
+        # ==========================================
+
+        elif start_date_lower in [
+
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+
+        ]:
+
+            weekdays = {
+
+                "monday": 0,
+                "tuesday": 1,
+                "wednesday": 2,
+                "thursday": 3,
+                "friday": 4,
+                "saturday": 5,
+                "sunday": 6
+
+            }
+
+            target_day = weekdays[
+                start_date_lower
+            ]
+
+            current_day = today.weekday()
+
+            days_ahead = (
+
+                target_day -
+
+                current_day
+
+            ) % 7
+
+            if days_ahead == 0:
+
+                days_ahead = 7
+
+            parsed_date = (
+
+                today +
+
+                timedelta(days=days_ahead)
+
+            )
+
+        # ==========================================
+        # NORMAL YYYY-MM-DD DATE
+        # ==========================================
+
+        else:
+
+            parsed_date = datetime.strptime(
+
+                start_date,
+
+                "%Y-%m-%d"
+
+            )
+
+        start_date = parsed_date.strftime(
+            "%Y-%m-%d"
+        )
 
         base_date = datetime.strptime(
             start_date,
