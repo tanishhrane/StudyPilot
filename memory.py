@@ -33,14 +33,12 @@ def _load_index():
         and
         os.path.exists(META_PATH)
     ):
-
         index = faiss.read_index(INDEX_PATH)
 
         with open(META_PATH, "rb") as f:
             metadata = pickle.load(f)
 
     else:
-
         index    = faiss.IndexFlatIP(EMBEDDING_DIM)
         metadata = []
 
@@ -82,7 +80,7 @@ def save_message(
     content,
     session_id="default",
     weak_topics=None,
-    topic=None          # ✅ NEW: store which quiz topic produced weak topics
+    topic=None          # ✅ stores which quiz topic produced weak topics
 ):
 
     global _index, _metadata
@@ -97,7 +95,7 @@ def save_message(
         "content":     content,
         "session_id":  session_id,
         "weak_topics": weak_topics or [],
-        "topic":       topic,             # ✅ NEW field
+        "topic":       topic,             # ✅ new field
         "timestamp":   datetime.now().isoformat()
     })
 
@@ -156,14 +154,14 @@ def get_last_messages(
 # GET WEAK TOPICS (topic-scoped) ✅ UPDATED
 # ==========================================
 
-def get_weak_topics(session_id="default", topic=None):
+def get_weak_topics(session_id="default", topic=None):  # ✅ topic param added
 
     global _index, _metadata
 
     if _index.ntotal == 0:
         return []
 
-    # ✅ Use topic-aware query if topic is provided
+    # ✅ topic-aware query
     query_text = (
         f"{topic} weak incorrect subtopic"
         if topic
@@ -190,7 +188,7 @@ def get_weak_topics(session_id="default", topic=None):
         if entry["session_id"] != session_id:
             continue
 
-        # ✅ KEY FIX: only include weak topics from the same quiz topic
+        # ✅ Only include weak topics from matching quiz topic
         if topic and entry.get("topic") != topic:
             continue
 
