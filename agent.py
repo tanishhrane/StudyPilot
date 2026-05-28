@@ -230,7 +230,7 @@ Current User Input:
         # FETCH WEAK TOPICS
         # ==========================================
 
-        weak = get_weak_topics(session_id="default")
+        weak = get_weak_topics(session_id="default",topic=topic)
 
         weak_topics_str = (
             ", ".join(weak) if weak else None

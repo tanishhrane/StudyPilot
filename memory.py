@@ -189,3 +189,71 @@ def get_weak_topics(session_id="default"):
         )
 
     return list(set(filter(None, weak)))
+# ==========================================
+# SAVE MESSAGE
+# ==========================================
+
+def save_message(
+    role,
+    content,
+    session_id="default",
+    weak_topics=None,
+    topic=None          # ✅ NEW: store which quiz topic produced weak topics
+):
+    global _index, _metadata
+
+    vector = _embed(content)
+    _index.add(vector)
+
+    _metadata.append({
+        "id":          str(uuid.uuid4()),
+        "role":        role,
+        "content":     content,
+        "session_id":  session_id,
+        "weak_topics": weak_topics or [],
+        "topic":       topic,             # ✅ NEW field
+        "timestamp":   datetime.now().isoformat()
+    })
+
+    _save_index(_index, _metadata)
+
+
+# ==========================================
+# GET WEAK TOPICS  (topic-scoped)
+# ==========================================
+
+def get_weak_topics(session_id="default", topic=None):  # ✅ NEW: topic param
+    global _index, _metadata
+
+    if _index.ntotal == 0:
+        return []
+
+    # ✅ Use topic-aware query if topic is provided
+    query_text = (
+        f"{topic} weak incorrect subtopic"
+        if topic
+        else "quiz wrong incorrect weak"
+    )
+
+    query_vector = _embed(query_text)
+    k = min(20, _index.ntotal)
+    scores, indices = _index.search(query_vector, k)
+
+    weak = []
+
+    for idx, score in zip(indices[0], scores[0]):
+        if idx == -1:
+            continue
+
+        entry = _metadata[idx]
+
+        if entry["session_id"] != session_id:
+            continue
+
+        # ✅ KEY FIX: only include weak topics from the same quiz topic
+        if topic and entry.get("topic") != topic:
+            continue
+
+        weak.extend(entry.get("weak_topics", []))
+
+    return list(set(filter(None, weak)))
