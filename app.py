@@ -1,5 +1,3 @@
-# app.py
-
 # ==========================================
 # IMPORTS
 # ==========================================
@@ -32,7 +30,7 @@ from auth import (
 
 st.set_page_config(
     page_title="StudyPilot",
-    page_icon="\U0001f4d8",
+    page_icon="📘",
     layout="centered"
 )
 
@@ -67,7 +65,7 @@ if "plan_json" not in st.session_state:
 # HEADER
 # ==========================================
 
-st.title("\U0001f4d8 StudyPilot")
+st.title("📘 StudyPilot")
 
 st.subheader(
     "Your Agentic AI Study Assistant"
@@ -82,7 +80,7 @@ if st.session_state.user is None:
 
     st.markdown("---")
 
-    st.subheader("\U0001f510 Login / Signup")
+    st.subheader("🔐 Login / Signup")
 
     auth_mode = st.selectbox(
         "Choose Option",
@@ -196,37 +194,42 @@ if st.button("Generate"):
     # RESET STATES
     # ==========================================
 
+    st.session_state.quiz           = None
     st.session_state.quiz_submitted = False
-    st.session_state.evaluation = None
+    st.session_state.evaluation     = None
 
     # ==========================================
-    # WEAK TOPICS BANNER
+    # RUN AGENT FIRST — to detect topic
     # ==========================================
+
+    result = run_agent(user_input)
+
+    tool_used = result.get("tool")
+
+    # ==========================================
+    # WEAK TOPICS BANNER (topic-scoped) ✅ FIXED
+    # ==========================================
+
+    current_topic = None
+
+    if tool_used == "generate_quiz":
+        current_topic = result.get(
+            "quiz_data", {}
+        ).get("topic")
 
     past_weak = get_weak_topics(
-        session_id="default"
+        session_id="default",
+        topic=current_topic     # ✅ Scoped to current topic only
     )
 
     if past_weak:
 
         st.info(
-            f"\U0001f4cc Based on past quizzes, "
+            f"📌 Based on past quizzes, "
             f"you previously struggled with: "
             f"**{', '.join(past_weak)}**. "
             f"A focused quiz on these will be generated."
         )
-
-    # ==========================================
-    # RUN AGENT
-    # ==========================================
-
-    result = run_agent(user_input)
-
-    # ==========================================
-    # DETECT CURRENT TOOL
-    # ==========================================
-
-    tool_used = result.get("tool")
 
     # ==========================================
     # QUIZ MODE
@@ -235,7 +238,7 @@ if st.button("Generate"):
     if tool_used == "generate_quiz":
 
         st.session_state.current_mode = "quiz"
-        st.session_state.quiz = result["quiz_data"]
+        st.session_state.quiz         = result["quiz_data"]
 
     # ==========================================
     # NORMAL MODE
@@ -243,11 +246,11 @@ if st.button("Generate"):
 
     else:
 
-        st.session_state.current_mode = "normal"
-        st.session_state.quiz = None
-        st.session_state.quiz_submitted = False
-        st.session_state.evaluation = None
-        st.session_state.normal_result = result["result"]
+        st.session_state.current_mode    = "normal"
+        st.session_state.quiz            = None
+        st.session_state.quiz_submitted  = False
+        st.session_state.evaluation      = None
+        st.session_state.normal_result   = result["result"]
 
         if tool_used == "create_study_plan":
             st.session_state.plan_json = result.get("plan_json")
@@ -267,7 +270,7 @@ if (
 
     st.markdown("---")
 
-    st.header("\U0001f4dd Quiz")
+    st.header("📝 Quiz")
 
     user_answers = {}
 
@@ -299,11 +302,11 @@ if (
 
         evaluation = evaluate_quiz(quiz, user_answers)
 
-        st.session_state.evaluation = evaluation
-        st.session_state.quiz_submitted = True
+        st.session_state.evaluation      = evaluation
+        st.session_state.quiz_submitted  = True
 
         # ==========================================
-        # SAVE WEAK TOPICS TO MEMORY
+        # SAVE WEAK TOPICS TO MEMORY (topic-scoped) ✅ FIXED
         # ==========================================
 
         if evaluation["weak_topics"]:
@@ -315,7 +318,8 @@ if (
                     f"{', '.join(evaluation['weak_topics'])}"
                 ),
                 session_id="default",
-                weak_topics=evaluation["weak_topics"]
+                weak_topics=evaluation["weak_topics"],
+                topic=quiz.get("topic")     # ✅ Save with quiz topic
             )
 
 
@@ -329,7 +333,7 @@ if st.session_state.quiz_submitted:
 
     st.markdown("---")
 
-    st.header("\U0001f4ca Quiz Results")
+    st.header("📊 Quiz Results")
 
     st.success(
         f"Score: "
@@ -354,11 +358,11 @@ if st.session_state.quiz_submitted:
 
         if item["is_correct"]:
             st.success(
-                f"Question {item['question_id']} \U00002192 Correct"
+                f"Question {item['question_id']} → Correct"
             )
         else:
             st.error(
-                f"Question {item['question_id']} \U00002192 Wrong "
+                f"Question {item['question_id']} → Wrong "
                 f"(Correct Answer: {item['correct_answer']})"
             )
 
@@ -375,7 +379,7 @@ if (
 
     st.markdown("---")
 
-    st.header("\U0001f50e Result")
+    st.header("🔎 Result")
 
     st.write(st.session_state.normal_result)
 
@@ -388,7 +392,7 @@ if st.session_state.plan_json:
 
     st.markdown("---")
 
-    if st.button("\U0001f4c5 Sync Plan To Google Calendar"):
+    if st.button("📅 Sync Plan To Google Calendar"):
 
         sync_result = sync_study_plan_to_calendar(
             st.session_state.plan_json
