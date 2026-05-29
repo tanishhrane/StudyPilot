@@ -11,3 +11,6 @@ streamlit-oauth
 faiss-cpu
 sentence-transformers
 numpy
+pymupdf
+python-docx
+python-pptx
