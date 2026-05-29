@@ -6,10 +6,19 @@ __pycache__/
 *.pyo
 
 # RAG vector database (user data, large, local only)
-chroma_store/
+faiss_index.bin
+faiss_metadata.pkl
+
+# RAG data (user uploaded document chunks)
+rag_faiss_index.bin
+rag_faiss_metadata.pkl
 
 # Google OAuth secret (NEVER push this)
 client_secret1.json
 
 # Streamlit
 .streamlit/secrets.toml
+
+# OS files
+.DS_Store
+Thumbs.db
