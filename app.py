@@ -207,7 +207,7 @@ if st.button("Generate"):
     tool_used = result.get("tool")
 
     # ==========================================
-    # WEAK TOPICS BANNER (topic-scoped) ✅ FIXED
+    # WEAK TOPICS BANNER (topic-scoped)
     # ==========================================
 
     current_topic = None
@@ -219,10 +219,10 @@ if st.button("Generate"):
 
     past_weak = get_weak_topics(
         session_id="default",
-        topic=current_topic     # ✅ Scoped to current topic only
+        topic=current_topic
     )
 
-    if past_weak:
+    if past_weak and tool_used == "generate_quiz":
 
         st.info(
             f"📌 Based on past quizzes, "
@@ -306,7 +306,7 @@ if (
         st.session_state.quiz_submitted  = True
 
         # ==========================================
-        # SAVE WEAK TOPICS TO MEMORY (topic-scoped) ✅ FIXED
+        # SAVE WEAK TOPICS TO MEMORY (topic-scoped)
         # ==========================================
 
         if evaluation["weak_topics"]:
@@ -319,7 +319,7 @@ if (
                 ),
                 session_id="default",
                 weak_topics=evaluation["weak_topics"],
-                topic=quiz.get("topic")     # ✅ Save with quiz topic
+                topic=quiz.get("topic")
             )
 
 
